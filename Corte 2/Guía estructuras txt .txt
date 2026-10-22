@@ -1,0 +1,2019 @@
+==================================================================
+GUÍA DE ESTRUCTURAS SQL - MySQL
+==================================================================
+
+Repaso para parcial de Ingeniería de Datos / Bases de Datos
+
+Formato: qué hace → estructura completa → ejemplo
+
+REGLAS RÁPIDAS
+• PK identifica.  • FK conecta.  • WHERE filtra filas.  • HAVING filtra grupos.
+• JOIN = solo coincidencias.  • LEFT JOIN = todos los de la izquierda.
+• PROCEDURE se ejecuta con CALL.  • TRIGGER es automático.  • VIEW guarda una consulta.
+
+==================================================================
+A. BASE DE DATOS, TABLAS Y RESTRICCIONES
+==================================================================
+
+------------------------------------------------------------------
+1. CREATE DATABASE + USE
+------------------------------------------------------------------
+¿Para qué sirve? Crear la base de datos y seleccionarla para trabajar.
+
+Estructura:
+
+    create database nombre_base;
+    use nombre_base;
+
+Ejemplo:
+
+    create database dronandes;
+    use dronandes;
+
+------------------------------------------------------------------
+2. DROP DATABASE IF EXISTS
+------------------------------------------------------------------
+¿Para qué sirve? Eliminar una base si ya existe, útil para ejecutar el script desde cero.
+
+Estructura:
+
+    drop database if exists nombre_base;
+
+Ejemplo:
+
+    drop database if exists dronandes;
+
+------------------------------------------------------------------
+3. CREATE TABLE
+------------------------------------------------------------------
+¿Para qué sirve? Crear una tabla con columnas, tipos de datos y restricciones.
+
+Estructura:
+
+    create table tabla (
+        id int auto_increment primary key,
+        columna1 tipo restriccion,
+        columna2 tipo restriccion
+    );
+
+Ejemplo:
+
+    create table clientes (
+        idCliente int auto_increment primary key,
+        nombre varchar(80) not null,
+        ciudad varchar(60)
+    );
+
+------------------------------------------------------------------
+4. PRIMARY KEY
+------------------------------------------------------------------
+¿Para qué sirve? Identificar de forma única cada fila.
+
+Estructura:
+
+    primary key (columna)
+
+Ejemplo:
+
+    primary key (idCliente)
+
+------------------------------------------------------------------
+5. FOREIGN KEY
+------------------------------------------------------------------
+¿Para qué sirve? Relacionar una tabla hija con una tabla padre.
+
+Estructura:
+
+    foreign key (columnaFK)
+    references tablaPadre(columnaPK)
+
+Ejemplo:
+
+    foreign key (idCliente)
+    references clientes(idCliente)
+
+Clave: En una relación 1:N, la FK normalmente va en el lado N.
+
+------------------------------------------------------------------
+6. NOT NULL
+------------------------------------------------------------------
+¿Para qué sirve? Obligar a que una columna tenga valor.
+
+Estructura:
+
+    columna tipo not null
+
+Ejemplo:
+
+    nombre varchar(80) not null
+
+------------------------------------------------------------------
+7. UNIQUE
+------------------------------------------------------------------
+¿Para qué sirve? Evitar valores repetidos en una columna.
+
+Estructura:
+
+    columna tipo unique
+
+Ejemplo:
+
+    email varchar(80) unique
+
+------------------------------------------------------------------
+8. DEFAULT
+------------------------------------------------------------------
+¿Para qué sirve? Asignar un valor automáticamente cuando no se envía uno.
+
+Estructura:
+
+    columna tipo default valor
+
+Ejemplo:
+
+    estado varchar(20) default 'ACTIVO'
+
+------------------------------------------------------------------
+9. CHECK
+------------------------------------------------------------------
+¿Para qué sirve? Validar que un dato cumpla una condición.
+
+Estructura:
+
+    create table tabla (
+        id int auto_increment primary key,
+        columna tipo,
+        constraint chk_nombre
+            check (condicion)
+    );
+
+Ejemplo:
+
+    create table productos (
+        idProducto int auto_increment primary key,
+        precio decimal(10,2) not null,
+        constraint chk_precio
+            check (precio > 0)
+    );
+
+Clave: Si el enunciado dice “solo puede ser”, “debe ser mayor que”, “entre X y Y”, piensa en CHECK.
+
+------------------------------------------------------------------
+10. CHECK con IN
+------------------------------------------------------------------
+¿Para qué sirve? Restringir una columna a una lista de valores permitidos.
+
+Estructura:
+
+    constraint chk_nombre
+    check (columna in ('valor1','valor2','valor3'))
+
+Ejemplo:
+
+    constraint chk_estado
+    check (estado in ('ACTIVO','MANTENIMIENTO','RETIRADO'))
+
+------------------------------------------------------------------
+11. PK compuesta
+------------------------------------------------------------------
+¿Para qué sirve? Identificar una fila mediante la combinación de dos columnas.
+
+Estructura:
+
+    primary key (columna1, columna2)
+
+Ejemplo:
+
+    primary key (idEntrega, idTipo)
+
+------------------------------------------------------------------
+12. Tabla intermedia N:M
+------------------------------------------------------------------
+¿Para qué sirve? Resolver una relación muchos a muchos mediante una nueva tabla.
+
+Estructura:
+
+    create table tabla_intermedia (
+        idA int,
+        idB int,
+        atributoRelacion tipo,
+        primary key (idA, idB),
+        foreign key (idA) references tablaA(idA),
+        foreign key (idB) references tablaB(idB)
+    );
+
+Ejemplo:
+
+    create table carga_entrega (
+        idEntrega int,
+        idTipo int,
+        pesoKg decimal(6,2),
+        primary key (idEntrega, idTipo),
+        foreign key (idEntrega) references entregas(idEntrega),
+        foreign key (idTipo) references tipos_carga(idTipo)
+    );
+
+------------------------------------------------------------------
+13. ALTER TABLE - ADD COLUMN
+------------------------------------------------------------------
+¿Para qué sirve? Agregar una nueva columna a una tabla ya creada.
+
+Estructura:
+
+    alter table tabla
+    add columna tipo;
+
+Ejemplo:
+
+    alter table clientes
+    add telefono varchar(15);
+
+------------------------------------------------------------------
+14. ALTER TABLE - MODIFY COLUMN
+------------------------------------------------------------------
+¿Para qué sirve? Cambiar el tipo o tamaño de una columna en MySQL.
+
+Estructura:
+
+    alter table tabla
+    modify column columna nuevo_tipo restricciones;
+
+Ejemplo:
+
+    alter table clientes
+    modify column nombre varchar(120) not null;
+
+------------------------------------------------------------------
+15. ALTER TABLE - ADD CONSTRAINT
+------------------------------------------------------------------
+¿Para qué sirve? Agregar después una restricción CHECK o FOREIGN KEY.
+
+Estructura:
+
+    alter table tabla
+    add constraint nombre_restriccion
+    check (condicion);
+
+Ejemplo:
+
+    alter table drones
+    add constraint chk_drones_carga
+    check (carga_max_kg between 0.5 and 25);
+
+------------------------------------------------------------------
+16. DROP TABLE
+------------------------------------------------------------------
+¿Para qué sirve? Eliminar la tabla y todos sus datos.
+
+Estructura:
+
+    drop table tabla;
+
+Ejemplo:
+
+    drop table clientes;
+
+------------------------------------------------------------------
+17. TRUNCATE TABLE
+------------------------------------------------------------------
+¿Para qué sirve? Eliminar todas las filas manteniendo la estructura de la tabla.
+
+Estructura:
+
+    truncate table tabla;
+
+Ejemplo:
+
+    truncate table clientes;
+
+==================================================================
+B. DML - INSERTAR, MODIFICAR Y ELIMINAR DATOS
+==================================================================
+
+------------------------------------------------------------------
+18. INSERT
+------------------------------------------------------------------
+¿Para qué sirve? Agregar un registro.
+
+Estructura:
+
+    insert into tabla(columna1, columna2)
+    values(valor1, valor2);
+
+Ejemplo:
+
+    insert into clientes(nombre, ciudad)
+    values('Ana', 'Bogotá');
+
+------------------------------------------------------------------
+19. INSERT múltiple
+------------------------------------------------------------------
+¿Para qué sirve? Agregar varios registros con una sola sentencia.
+
+Estructura:
+
+    insert into tabla(col1, col2)
+    values
+    (valor1, valor2),
+    (valor3, valor4);
+
+Ejemplo:
+
+    insert into clientes(nombre, ciudad)
+    values
+    ('Ana','Bogotá'),
+    ('Luis','Cali');
+
+------------------------------------------------------------------
+20. UPDATE
+------------------------------------------------------------------
+¿Para qué sirve? Modificar datos existentes.
+
+Estructura:
+
+    update tabla
+    set columna = valor
+    where condicion;
+
+Ejemplo:
+
+    update clientes
+    set ciudad = 'Cali'
+    where idCliente = 3;
+
+Clave: No olvides WHERE si no quieres modificar todas las filas.
+
+------------------------------------------------------------------
+21. Baja lógica
+------------------------------------------------------------------
+¿Para qué sirve? Desactivar un registro sin eliminarlo físicamente.
+
+Estructura:
+
+    update tabla
+    set activo = false
+    where condicion;
+
+Ejemplo:
+
+    update productos
+    set activo = false
+    where idProducto = 7;
+
+------------------------------------------------------------------
+22. DELETE
+------------------------------------------------------------------
+¿Para qué sirve? Eliminar filas que cumplen una condición.
+
+Estructura:
+
+    delete from tabla
+    where condicion;
+
+Ejemplo:
+
+    delete from clientes
+    where idCliente = 3;
+
+==================================================================
+C. CONSULTAS BÁSICAS
+==================================================================
+
+------------------------------------------------------------------
+23. SELECT
+------------------------------------------------------------------
+¿Para qué sirve? Mostrar columnas de una tabla.
+
+Estructura:
+
+    select columnas
+    from tabla;
+
+Ejemplo:
+
+    select nombre, ciudad
+    from clientes;
+
+------------------------------------------------------------------
+24. SELECT + WHERE
+------------------------------------------------------------------
+¿Para qué sirve? Mostrar solo las filas que cumplen una condición.
+
+Estructura:
+
+    select columnas
+    from tabla
+    where condicion;
+
+Ejemplo:
+
+    select nombre, ciudad
+    from clientes
+    where ciudad = 'Bogotá';
+
+------------------------------------------------------------------
+25. ORDER BY
+------------------------------------------------------------------
+¿Para qué sirve? Ordenar el resultado.
+
+Estructura:
+
+    select columnas
+    from tabla
+    order by columna asc/desc;
+
+Ejemplo:
+
+    select nombre, salario
+    from empleados
+    order by salario desc;
+
+------------------------------------------------------------------
+26. LIMIT + OFFSET
+------------------------------------------------------------------
+¿Para qué sirve? Limitar cuántas filas se muestran y saltar cierta cantidad.
+
+Estructura:
+
+    select *
+    from tabla
+    limit cantidad offset salto;
+
+Ejemplo:
+
+    select *
+    from clientes
+    limit 5 offset 2;
+
+------------------------------------------------------------------
+27. DISTINCT
+------------------------------------------------------------------
+¿Para qué sirve? Eliminar valores repetidos del resultado.
+
+Estructura:
+
+    select distinct columna
+    from tabla;
+
+Ejemplo:
+
+    select distinct ciudad
+    from clientes;
+
+------------------------------------------------------------------
+28. AS
+------------------------------------------------------------------
+¿Para qué sirve? Asignar un alias a una columna o cálculo.
+
+Estructura:
+
+    select columna as alias
+    from tabla;
+
+Ejemplo:
+
+    select nombre as cliente
+    from clientes;
+
+==================================================================
+D. CONDICIONES
+==================================================================
+
+------------------------------------------------------------------
+29. LIKE
+------------------------------------------------------------------
+¿Para qué sirve? Buscar patrones de texto.
+
+Estructura:
+
+    select *
+    from tabla
+    where columna like 'patron';
+
+Ejemplo:
+
+    select *
+    from clientes
+    where nombre like 'L%';
+
+Clave: 'L%' empieza con L; '%a' termina en a; '%an%' contiene an; '_' representa un carácter.
+
+------------------------------------------------------------------
+30. REGEXP
+------------------------------------------------------------------
+¿Para qué sirve? Buscar patrones de texto con expresiones regulares.
+
+Estructura:
+
+    select *
+    from tabla
+    where columna regexp 'patron';
+
+Ejemplo:
+
+    select *
+    from clientes
+    where nombre regexp '^L';
+
+------------------------------------------------------------------
+31. BETWEEN
+------------------------------------------------------------------
+¿Para qué sirve? Filtrar un rango inclusivo.
+
+Estructura:
+
+    select *
+    from tabla
+    where columna between valor1 and valor2;
+
+Ejemplo:
+
+    select *
+    from empleados
+    where salario between 2000000 and 4000000;
+
+------------------------------------------------------------------
+32. IN
+------------------------------------------------------------------
+¿Para qué sirve? Aceptar cualquiera de varios valores.
+
+Estructura:
+
+    select *
+    from tabla
+    where columna in (valor1, valor2, valor3);
+
+Ejemplo:
+
+    select *
+    from clientes
+    where ciudad in ('Bogotá','Cali','Medellín');
+
+------------------------------------------------------------------
+33. NOT IN
+------------------------------------------------------------------
+¿Para qué sirve? Excluir varios valores.
+
+Estructura:
+
+    select *
+    from tabla
+    where columna not in (valor1, valor2);
+
+Ejemplo:
+
+    select *
+    from entregas
+    where estado not in ('CANCELADA','FALLIDA');
+
+------------------------------------------------------------------
+34. IS NULL
+------------------------------------------------------------------
+¿Para qué sirve? Buscar valores nulos.
+
+Estructura:
+
+    select *
+    from tabla
+    where columna is null;
+
+Ejemplo:
+
+    select *
+    from clientes
+    where telefono is null;
+
+------------------------------------------------------------------
+35. IS NOT NULL
+------------------------------------------------------------------
+¿Para qué sirve? Buscar valores que sí tienen dato.
+
+Estructura:
+
+    select *
+    from tabla
+    where columna is not null;
+
+Ejemplo:
+
+    select *
+    from clientes
+    where telefono is not null;
+
+------------------------------------------------------------------
+36. AND
+------------------------------------------------------------------
+¿Para qué sirve? Exigir que se cumplan dos o más condiciones.
+
+Estructura:
+
+    select *
+    from tabla
+    where condicion1
+    and condicion2;
+
+Ejemplo:
+
+    select *
+    from clientes
+    where ciudad = 'Bogotá'
+    and edad > 30;
+
+------------------------------------------------------------------
+37. OR
+------------------------------------------------------------------
+¿Para qué sirve? Aceptar que se cumpla una condición u otra.
+
+Estructura:
+
+    select *
+    from tabla
+    where condicion1
+    or condicion2;
+
+Ejemplo:
+
+    select *
+    from clientes
+    where ciudad = 'Bogotá'
+    or ciudad = 'Cali';
+
+------------------------------------------------------------------
+38. NOT
+------------------------------------------------------------------
+¿Para qué sirve? Negar una condición.
+
+Estructura:
+
+    select *
+    from tabla
+    where not condicion;
+
+Ejemplo:
+
+    select *
+    from pilotos
+    where not licencia = 'A';
+
+==================================================================
+E. FUNCIONES
+==================================================================
+
+------------------------------------------------------------------
+39. UPPER
+------------------------------------------------------------------
+¿Para qué sirve? Convertir texto a mayúsculas
+
+Estructura:
+
+    select upper(columna)
+    from tabla;
+
+Ejemplo:
+
+    select upper(nombre)
+    from clientes;
+
+------------------------------------------------------------------
+40. LOWER
+------------------------------------------------------------------
+¿Para qué sirve? Convertir texto a minúsculas
+
+Estructura:
+
+    select lower(columna)
+    from tabla;
+
+Ejemplo:
+
+    select lower(email)
+    from clientes;
+
+------------------------------------------------------------------
+41. TRIM
+------------------------------------------------------------------
+¿Para qué sirve? Quitar espacios al inicio y al final
+
+Estructura:
+
+    select trim(columna)
+    from tabla;
+
+Ejemplo:
+
+    select trim(nombre)
+    from clientes;
+
+------------------------------------------------------------------
+42. LENGTH
+------------------------------------------------------------------
+¿Para qué sirve? Contar caracteres
+
+Estructura:
+
+    select length(columna)
+    from tabla;
+
+Ejemplo:
+
+    select length(telefono)
+    from clientes;
+
+------------------------------------------------------------------
+43. ROUND
+------------------------------------------------------------------
+¿Para qué sirve? Redondear un número
+
+Estructura:
+
+    select round(columna, decimales)
+    from tabla;
+
+Ejemplo:
+
+    select round(salario, 2)
+    from empleados;
+
+------------------------------------------------------------------
+44. ABS
+------------------------------------------------------------------
+¿Para qué sirve? Obtener el valor absoluto
+
+Estructura:
+
+    select abs(columna)
+    from tabla;
+
+Ejemplo:
+
+    select abs(saldo)
+    from cuentas;
+
+------------------------------------------------------------------
+45. SQRT
+------------------------------------------------------------------
+¿Para qué sirve? Calcular raíz cuadrada
+
+Estructura:
+
+    select sqrt(columna)
+    from tabla;
+
+Ejemplo:
+
+    select sqrt(valor)
+    from numeros;
+
+------------------------------------------------------------------
+46. COALESCE
+------------------------------------------------------------------
+¿Para qué sirve? Reemplazar NULL en el resultado por otro valor.
+
+Estructura:
+
+    select coalesce(columna, reemplazo)
+    from tabla;
+
+Ejemplo:
+
+    select coalesce(telefono, 'SIN TELÉFONO') as telefono
+    from clientes;
+
+------------------------------------------------------------------
+47. CONCAT
+------------------------------------------------------------------
+¿Para qué sirve? Unir varios textos en una sola salida.
+
+Estructura:
+
+    select concat(columna1, ' ', columna2) as alias
+    from tabla;
+
+Ejemplo:
+
+    select concat(nombres, ' ', apellidos) as piloto
+    from pilotos;
+
+------------------------------------------------------------------
+48. CASE
+------------------------------------------------------------------
+¿Para qué sirve? Clasificar o producir diferentes resultados según condiciones.
+
+Estructura:
+
+    select columna,
+           case
+               when condicion1 then 'resultado1'
+               when condicion2 then 'resultado2'
+               else 'resultado3'
+           end as alias
+    from tabla;
+
+Ejemplo:
+
+    select salario,
+           case
+               when salario >= 5000000 then 'ALTO'
+               when salario >= 3000000 then 'MEDIO'
+               else 'BAJO'
+           end as nivel
+    from empleados;
+
+==================================================================
+F. FUNCIONES AGREGADAS, GROUP BY Y HAVING
+==================================================================
+
+------------------------------------------------------------------
+49. COUNT
+------------------------------------------------------------------
+¿Para qué sirve? Contar filas
+
+Estructura:
+
+    select count(*)
+    from tabla;
+
+Ejemplo:
+
+    select count(*)
+    from pedidos;
+
+------------------------------------------------------------------
+50. SUM
+------------------------------------------------------------------
+¿Para qué sirve? Sumar valores
+
+Estructura:
+
+    select sum(columna)
+    from tabla;
+
+Ejemplo:
+
+    select sum(monto)
+    from pedidos;
+
+------------------------------------------------------------------
+51. AVG
+------------------------------------------------------------------
+¿Para qué sirve? Calcular promedio
+
+Estructura:
+
+    select avg(columna)
+    from tabla;
+
+Ejemplo:
+
+    select avg(monto)
+    from pedidos;
+
+------------------------------------------------------------------
+52. MAX
+------------------------------------------------------------------
+¿Para qué sirve? Obtener el valor máximo
+
+Estructura:
+
+    select max(columna)
+    from tabla;
+
+Ejemplo:
+
+    select max(monto)
+    from pedidos;
+
+------------------------------------------------------------------
+53. MIN
+------------------------------------------------------------------
+¿Para qué sirve? Obtener el valor mínimo
+
+Estructura:
+
+    select min(columna)
+    from tabla;
+
+Ejemplo:
+
+    select min(monto)
+    from pedidos;
+
+------------------------------------------------------------------
+54. GROUP BY
+------------------------------------------------------------------
+¿Para qué sirve? Agrupar filas para calcular resultados por ciudad, cliente, categoría, etc.
+
+Estructura:
+
+    select grupo, funcion_agregada(columna)
+    from tabla
+    group by grupo;
+
+Ejemplo:
+
+    select ciudad, count(*) as total
+    from clientes
+    group by ciudad;
+
+------------------------------------------------------------------
+55. WHERE + GROUP BY
+------------------------------------------------------------------
+¿Para qué sirve? Filtrar filas antes de agrupar.
+
+Estructura:
+
+    select grupo, funcion_agregada(columna)
+    from tabla
+    where condicion_filas
+    group by grupo;
+
+Ejemplo:
+
+    select ciudad, avg(monto)
+    from pedidos
+    where monto > 200000
+    group by ciudad;
+
+------------------------------------------------------------------
+56. HAVING
+------------------------------------------------------------------
+¿Para qué sirve? Filtrar grupos después de GROUP BY.
+
+Estructura:
+
+    select grupo, funcion_agregada(columna)
+    from tabla
+    group by grupo
+    having funcion_agregada(columna) operador valor;
+
+Ejemplo:
+
+    select ciudad, count(*) as total
+    from clientes
+    group by ciudad
+    having count(*) > 3;
+
+Clave: WHERE filtra filas. HAVING filtra resultados de COUNT, SUM, AVG, MAX o MIN.
+
+==================================================================
+G. JOINS
+==================================================================
+
+------------------------------------------------------------------
+57. INNER JOIN / JOIN
+------------------------------------------------------------------
+¿Para qué sirve? Unir dos tablas y mostrar solo las filas que sí tienen coincidencia.
+
+Estructura:
+
+    select columnas
+    from tabla1 t1
+    join tabla2 t2
+    on t1.pk = t2.fk;
+
+Ejemplo:
+
+    select c.nombre, p.total
+    from clientes c
+    join pedidos p
+    on c.idCliente = p.idCliente;
+
+------------------------------------------------------------------
+58. LEFT JOIN
+------------------------------------------------------------------
+¿Para qué sirve? Mostrar todos los registros de la tabla izquierda, tengan o no coincidencia.
+
+Estructura:
+
+    select columnas
+    from tabla1 t1
+    left join tabla2 t2
+    on t1.pk = t2.fk;
+
+Ejemplo:
+
+    select c.nombre, p.total
+    from clientes c
+    left join pedidos p
+    on c.idCliente = p.idCliente;
+
+------------------------------------------------------------------
+59. LEFT JOIN + IS NULL
+------------------------------------------------------------------
+¿Para qué sirve? Encontrar registros de la izquierda que no tienen relación.
+
+Estructura:
+
+    select t1.columnas
+    from tabla1 t1
+    left join tabla2 t2
+    on t1.pk = t2.fk
+    where t2.pk is null;
+
+Ejemplo:
+
+    select c.nombre
+    from clientes c
+    left join pedidos p
+    on c.idCliente = p.idCliente
+    where p.idPedido is null;
+
+------------------------------------------------------------------
+60. RIGHT JOIN
+------------------------------------------------------------------
+¿Para qué sirve? Mostrar todos los registros de la tabla derecha, tengan o no coincidencia.
+
+Estructura:
+
+    select columnas
+    from tabla1 t1
+    right join tabla2 t2
+    on t1.pk = t2.fk;
+
+Ejemplo:
+
+    select c.nombre, p.total
+    from clientes c
+    right join pedidos p
+    on c.idCliente = p.idCliente;
+
+------------------------------------------------------------------
+61. SELF JOIN
+------------------------------------------------------------------
+¿Para qué sirve? Relacionar una tabla consigo misma, por ejemplo empleado-jefe o piloto-supervisor.
+
+Estructura:
+
+    select a.columna as registro,
+           b.columna as relacionado
+    from tabla a
+    left join tabla b
+    on a.fk_recursiva = b.pk;
+
+Ejemplo:
+
+    select p.nombres as piloto,
+           s.nombres as supervisor
+    from pilotos p
+    left join pilotos s
+    on p.idSupervisor = s.idPiloto;
+
+------------------------------------------------------------------
+62. JOIN de 3 tablas
+------------------------------------------------------------------
+¿Para qué sirve? Traer información relacionada desde tres tablas.
+
+Estructura:
+
+    select columnas
+    from tabla1 a
+    join tabla2 b
+    on a.pk = b.fk
+    join tabla3 c
+    on b.fk2 = c.pk;
+
+Ejemplo:
+
+    select e.codigo, c.nombre, d.codigoSerie
+    from entregas e
+    join clientes c
+    on e.idCliente = c.idCliente
+    join drones d
+    on e.idDron = d.idDron;
+
+==================================================================
+H. SUBCONSULTAS
+==================================================================
+
+------------------------------------------------------------------
+63. Subconsulta escalar
+------------------------------------------------------------------
+¿Para qué sirve? Comparar un dato con un único resultado calculado por otra consulta.
+
+Estructura:
+
+    select columnas
+    from tabla
+    where columna operador (
+        select funcion(columna)
+        from tabla
+    );
+
+Ejemplo:
+
+    select nombre, salario
+    from empleados
+    where salario > (
+        select avg(salario)
+        from empleados
+    );
+
+------------------------------------------------------------------
+64. IN con subconsulta
+------------------------------------------------------------------
+¿Para qué sirve? Mostrar registros cuyo identificador aparece en otra consulta.
+
+Estructura:
+
+    select columnas
+    from tabla1
+    where columna in (
+        select columna
+        from tabla2
+    );
+
+Ejemplo:
+
+    select nombre
+    from estudiantes
+    where idEstudiante in (
+        select idEstudiante
+        from inscripciones
+    );
+
+------------------------------------------------------------------
+65. NOT IN con subconsulta
+------------------------------------------------------------------
+¿Para qué sirve? Mostrar registros cuyo identificador no aparece en otra consulta.
+
+Estructura:
+
+    select columnas
+    from tabla1
+    where columna not in (
+        select columna
+        from tabla2
+    );
+
+Ejemplo:
+
+    select nombre
+    from clientes
+    where idCliente not in (
+        select idCliente
+        from pedidos
+    );
+
+------------------------------------------------------------------
+66. EXISTS
+------------------------------------------------------------------
+¿Para qué sirve? Comprobar si existe al menos una fila relacionada.
+
+Estructura:
+
+    select columnas
+    from tabla1 t1
+    where exists (
+        select 1
+        from tabla2 t2
+        where t2.fk = t1.pk
+    );
+
+Ejemplo:
+
+    select e.nombre
+    from empleados e
+    where exists (
+        select 1
+        from proyectosEmpleado p
+        where p.idEmpleado = e.idEmpleado
+    );
+
+------------------------------------------------------------------
+67. NOT EXISTS
+------------------------------------------------------------------
+¿Para qué sirve? Comprobar que no exista ninguna fila relacionada.
+
+Estructura:
+
+    select columnas
+    from tabla1 t1
+    where not exists (
+        select 1
+        from tabla2 t2
+        where t2.fk = t1.pk
+    );
+
+Ejemplo:
+
+    select d.codigoSerie
+    from drones d
+    where not exists (
+        select 1
+        from mantenimientos m
+        where m.idDron = d.idDron
+    );
+
+------------------------------------------------------------------
+68. Subconsulta correlacionada
+------------------------------------------------------------------
+¿Para qué sirve? Comparar cada fila con un cálculo que depende de esa misma fila.
+
+Estructura:
+
+    select a.columnas
+    from tabla a
+    where a.valor > (
+        select avg(b.valor)
+        from tabla b
+        where b.grupo = a.grupo
+    );
+
+Ejemplo:
+
+    select d.codigoSerie, d.horasVuelo
+    from drones d
+    where d.horasVuelo > (
+        select avg(d2.horasVuelo)
+        from drones d2
+        where d2.idBase = d.idBase
+    );
+
+==================================================================
+I. VISTAS E ÍNDICES
+==================================================================
+
+------------------------------------------------------------------
+69. CREATE VIEW
+------------------------------------------------------------------
+¿Para qué sirve? Guardar una consulta para reutilizarla como si fuera una tabla.
+
+Estructura:
+
+    create view nombre_vista as
+    select columnas
+    from tabla
+    where condicion;
+
+Ejemplo:
+
+    create view clientesActivos as
+    select nombre, ciudad
+    from clientes
+    where activo = true;
+
+------------------------------------------------------------------
+70. Consultar una VIEW
+------------------------------------------------------------------
+¿Para qué sirve? Consultar la vista después de crearla.
+
+Estructura:
+
+    select *
+    from nombre_vista;
+
+Ejemplo:
+
+    select *
+    from clientesActivos;
+
+------------------------------------------------------------------
+71. CREATE INDEX
+------------------------------------------------------------------
+¿Para qué sirve? Crear un índice para acelerar búsquedas frecuentes.
+
+Estructura:
+
+    create index nombre_indice
+    on tabla(columna);
+
+Ejemplo:
+
+    create index idxCiudad
+    on clientes(ciudad);
+
+------------------------------------------------------------------
+72. INDEX compuesto
+------------------------------------------------------------------
+¿Para qué sirve? Optimizar búsquedas frecuentes que combinan varias columnas.
+
+Estructura:
+
+    create index nombre_indice
+    on tabla(columna1, columna2);
+
+Ejemplo:
+
+    create index idxTipoCiudad
+    on clientes(tipo, ciudad);
+
+==================================================================
+J. PROCEDIMIENTOS Y FUNCIONES ALMACENADAS
+==================================================================
+
+------------------------------------------------------------------
+73. PROCEDURE con IN
+------------------------------------------------------------------
+¿Para qué sirve? Crear un proceso almacenado que recibe datos de entrada.
+
+Estructura:
+
+    delimiter //
+    create procedure nombre(
+        in parametro tipo
+    )
+    begin
+        instrucciones;
+    end //
+    delimiter ;
+
+Ejemplo:
+
+    delimiter //
+    create procedure buscarCliente(
+        in p_id int
+    )
+    begin
+        select *
+        from clientes
+        where idCliente = p_id;
+    end //
+    delimiter ;
+
+------------------------------------------------------------------
+74. CALL
+------------------------------------------------------------------
+¿Para qué sirve? Ejecutar un procedimiento almacenado.
+
+Estructura:
+
+    call nombre(valor);
+
+Ejemplo:
+
+    call buscarCliente(5);
+
+------------------------------------------------------------------
+75. PROCEDURE con OUT
+------------------------------------------------------------------
+¿Para qué sirve? Crear un procedimiento que devuelve un valor mediante un parámetro.
+
+Estructura:
+
+    delimiter //
+    create procedure nombre(
+        out parametro tipo
+    )
+    begin
+        select calculo
+        into parametro
+        from tabla;
+    end //
+    delimiter ;
+
+Ejemplo:
+
+    delimiter //
+    create procedure contarClientes(
+        out total int
+    )
+    begin
+        select count(*)
+        into total
+        from clientes;
+    end //
+    delimiter ;
+
+------------------------------------------------------------------
+76. PROCEDURE con INOUT
+------------------------------------------------------------------
+¿Para qué sirve? Recibir un valor y devolver ese mismo valor modificado.
+
+Estructura:
+
+    delimiter //
+    create procedure nombre(
+        inout parametro tipo
+    )
+    begin
+        set parametro = nuevo_valor;
+    end //
+    delimiter ;
+
+Ejemplo:
+
+    delimiter //
+    create procedure aumentarSaldo(
+        inout p_saldo decimal(10,2)
+    )
+    begin
+        set p_saldo = p_saldo + 50000;
+    end //
+    delimiter ;
+
+------------------------------------------------------------------
+77. FUNCTION almacenada
+------------------------------------------------------------------
+¿Para qué sirve? Crear una función que recibe parámetros y devuelve un único valor.
+
+Estructura:
+
+    delimiter //
+    create function nombre(parametro tipo)
+    returns tipo_retorno
+    reads sql data
+    begin
+        declare variable tipo;
+        -- instrucciones
+        return variable;
+    end //
+    delimiter ;
+
+Ejemplo:
+
+    delimiter //
+    create function fn_total_cliente(p_id int)
+    returns decimal(10,2)
+    reads sql data
+    begin
+        declare v_total decimal(10,2);
+        select coalesce(sum(monto),0)
+        into v_total
+        from pedidos
+        where idCliente = p_id;
+        return v_total;
+    end //
+    delimiter ;
+
+Clave: Una FUNCTION se usa dentro de SELECT; un PROCEDURE se ejecuta con CALL.
+
+------------------------------------------------------------------
+78. SELECT ... INTO
+------------------------------------------------------------------
+¿Para qué sirve? Guardar el resultado de una consulta dentro de una variable en funciones/procedimientos.
+
+Estructura:
+
+    select expresion
+    into variable
+    from tabla
+    where condicion;
+
+Ejemplo:
+
+    select avg(salario)
+    into v_promedio
+    from empleados;
+
+------------------------------------------------------------------
+79. SIGNAL SQLSTATE
+------------------------------------------------------------------
+¿Para qué sirve? Detener un procedimiento o función con un error personalizado en MySQL.
+
+Estructura:
+
+    signal sqlstate '45000'
+    set message_text = 'mensaje';
+
+Ejemplo:
+
+    signal sqlstate '45000'
+    set message_text = 'El dron no está ACTIVO';
+
+==================================================================
+K. TRIGGERS
+==================================================================
+
+------------------------------------------------------------------
+80. TRIGGER
+------------------------------------------------------------------
+¿Para qué sirve? Ejecutar automáticamente instrucciones cuando ocurre INSERT, UPDATE o DELETE.
+
+Estructura:
+
+    delimiter //
+    create trigger nombre_trigger
+    before/after insert/update/delete
+    on tabla
+    for each row
+    begin
+        instrucciones;
+    end //
+    delimiter ;
+
+Ejemplo:
+
+    delimiter //
+    create trigger trgNombre
+    before insert
+    on clientes
+    for each row
+    begin
+        set new.nombre = upper(new.nombre);
+    end //
+    delimiter ;
+
+------------------------------------------------------------------
+81. OLD y NEW en UPDATE
+------------------------------------------------------------------
+¿Para qué sirve? Acceder al valor anterior y al valor nuevo dentro de un trigger.
+
+Estructura:
+
+    create trigger nombre
+    before/after update
+    on tabla
+    for each row
+    begin
+        -- OLD.columna = antes
+        -- NEW.columna = después
+    end;
+
+Ejemplo:
+
+    delimiter //
+    create trigger trgPrecio
+    after update
+    on productos
+    for each row
+    begin
+        insert into historialPrecios(precioAnterior, precioNuevo)
+        values(old.precio, new.precio);
+    end //
+    delimiter ;
+
+Clave: INSERT usa NEW. DELETE usa OLD. UPDATE puede usar OLD y NEW.
+
+==================================================================
+L. TRANSACCIONES
+==================================================================
+
+------------------------------------------------------------------
+82. TRANSACTION + COMMIT
+------------------------------------------------------------------
+¿Para qué sirve? Agrupar operaciones y guardarlas definitivamente.
+
+Estructura:
+
+    start transaction;
+
+    operaciones;
+
+    commit;
+
+Ejemplo:
+
+    start transaction;
+    update cuentas
+    set saldo = saldo - 50000
+    where idCuenta = 1;
+    commit;
+
+------------------------------------------------------------------
+83. ROLLBACK
+------------------------------------------------------------------
+¿Para qué sirve? Deshacer los cambios de la transacción antes del COMMIT.
+
+Estructura:
+
+    start transaction;
+    operaciones;
+    rollback;
+
+Ejemplo:
+
+    start transaction;
+    update clientes
+    set saldo = 0
+    where idCliente = 3;
+    rollback;
+
+------------------------------------------------------------------
+84. SAVEPOINT + ROLLBACK TO
+------------------------------------------------------------------
+¿Para qué sirve? Crear un punto intermedio al que se puede regresar sin deshacer toda la transacción.
+
+Estructura:
+
+    start transaction;
+    operacion1;
+    savepoint punto;
+    operacion2;
+    rollback to punto;
+    commit;
+
+Ejemplo:
+
+    start transaction;
+    update cuentas set saldo = saldo - 50000 where idCuenta = 1;
+    savepoint punto1;
+    update cuentas set saldo = saldo + 50000 where idCuenta = 2;
+    rollback to punto1;
+    commit;
+
+==================================================================
+M. CÓMO SABER QUÉ ESTRUCTURA USAR EN EL PARCIAL
+==================================================================
+
+SI EL ENUNCIADO DICE... → PIENSO EN...
+• “crear una tabla” → CREATE TABLE
+• “dato obligatorio” → NOT NULL
+• “no se puede repetir” → UNIQUE
+• “por defecto” → DEFAULT
+• “solo puede ser / debe cumplir / rango permitido” → CHECK
+• “se relaciona con otra tabla” → FOREIGN KEY
+• “muchos a muchos / N:M” → tabla intermedia + 2 FK + PK compuesta
+• “agregar una columna” → ALTER TABLE + ADD
+• “cambiar tamaño o tipo” → ALTER TABLE + MODIFY COLUMN
+• “registrar / agregar datos” → INSERT
+• “varios registros en una sola sentencia” → INSERT múltiple
+• “modificar” → UPDATE
+• “desactivar sin borrar” → UPDATE (baja lógica)
+• “eliminar fila” → DELETE
+• “vaciar tabla” → TRUNCATE
+• “eliminar tabla” → DROP TABLE
+• “mostrar / listar” → SELECT
+• “solo los que cumplen...” → WHERE
+• “orden ascendente/descendente” → ORDER BY
+• “primeros N” → LIMIT
+• “saltar N registros” → OFFSET
+• “sin repetidos” → DISTINCT
+• “llamar la columna de otra forma” → AS
+• “empieza por / termina en / contiene” → LIKE o REGEXP
+• “entre X y Y” → BETWEEN
+• “uno de estos valores” → IN
+• “ninguno de estos valores” → NOT IN
+• “sin dato” → IS NULL
+• “con dato” → IS NOT NULL
+• “ambas condiciones” → AND
+• “una u otra condición” → OR
+• “no...” → NOT
+• “mayúsculas” → UPPER
+• “minúsculas” → LOWER
+• “quitar espacios” → TRIM
+• “cantidad de caracteres” → LENGTH
+• “redondear” → ROUND
+• “reemplazar NULL” → COALESCE
+• “unir nombres/textos” → CONCAT
+• “clasificar en categorías” → CASE
+• “cuántos” → COUNT
+• “total / suma” → SUM
+• “promedio” → AVG
+• “mayor / máximo” → MAX
+• “menor / mínimo” → MIN
+• “por ciudad / por cliente / por categoría / cada...” → GROUP BY
+• “grupos con más de / promedio mayor que / suma mayor que” → HAVING
+• “información de dos tablas relacionadas” → JOIN
+• “solo los que sí tienen relación” → INNER JOIN / JOIN
+• “todos aunque no tengan relación” → LEFT JOIN
+• “los que NO tienen relación” → LEFT JOIN + IS NULL
+• “la tabla se relaciona consigo misma” → SELF JOIN
+• “mayor/menor que el promedio” → subconsulta escalar
+• “aparece en otra tabla” → IN con subconsulta
+• “no aparece en otra tabla” → NOT IN o NOT EXISTS
+• “existe al menos uno relacionado” → EXISTS
+• “nunca ha tenido...” → NOT EXISTS
+• “promedio de su misma categoría/base” → subconsulta correlacionada
+• “guardar una consulta” → VIEW
+• “acelerar búsquedas” → INDEX
+• “proceso guardado que ejecuto” → PROCEDURE + CALL
+• “valor que entra” → IN
+• “valor que sale” → OUT
+• “entra y sale modificado” → INOUT
+• “devolver un único valor y usarlo en SELECT” → FUNCTION
+• “detener con error personalizado” → SIGNAL SQLSTATE
+• “automáticamente cuando se inserta/modifica/elimina” → TRIGGER
+• “valor anterior/nuevo” → OLD / NEW
+• “varias operaciones como una unidad” → TRANSACTION
+• “guardar cambios” → COMMIT
+• “deshacer” → ROLLBACK
+• “marcar un punto” → SAVEPOINT
+
+==================================================================
+N. ORDEN MENTAL PARA RESOLVER UNA PREGUNTA
+==================================================================
+
+1. ¿Qué me piden MOSTRAR? → eso va después de SELECT.
+
+2. ¿De qué tabla sale? → FROM.
+
+3. ¿Necesito otra tabla? → JOIN y ON (PK = FK).
+
+4. ¿Debo filtrar filas? → WHERE.
+
+5. ¿Dice “por cada / por ciudad / por cliente”? → GROUP BY.
+
+6. ¿La condición es sobre COUNT, SUM, AVG, MAX o MIN? → HAVING.
+
+7. ¿Necesito comparar con un promedio/máximo/otra consulta? → subconsulta.
+
+8. ¿Debe ocurrir automáticamente? → TRIGGER.
+
+9. ¿Es un proceso que debo llamar? → PROCEDURE.
+
+10. ¿Devuelve un único valor para usar en SELECT? → FUNCTION.
+
+==================================================================
+O. ESTRUCTURAS ADICIONALES: CONSTRAINT, LLAVES Y SELECT
+==================================================================
+
+Guía rápida para copiar en MySQL / DBeaver. En cada tema: estructura sola y ejemplo completo.
+
+------------------------------------------------------------------
+85. CONSTRAINT + PRIMARY KEY con nombre
+------------------------------------------------------------------
+¿Para qué sirve? Identifica de forma única cada registro y permite poner nombre a la restricción.
+
+Estructura:
+
+    create table nombre_tabla (
+        id int auto_increment,
+        constraint pk_nombre primary key (id)
+    );
+
+Ejemplo:
+
+    create table clientes (
+        id_cliente int auto_increment,
+        nombre varchar(80) not null,
+        constraint pk_clientes primary key (id_cliente)
+    );
+
+Recuerda: El nombre pk_clientes lo eliges tú; no es una palabra obligatoria.
+
+------------------------------------------------------------------
+86. CONSTRAINT + FOREIGN KEY con nombre
+------------------------------------------------------------------
+¿Para qué sirve? Conecta la columna de una tabla hija con la llave primaria o única de otra tabla.
+
+Estructura:
+
+    create table tabla_hija (
+        id int auto_increment,
+        id_padre int not null,
+        constraint pk_hija primary key (id),
+        constraint fk_hija_padre foreign key (id_padre)
+            references tabla_padre(id_padre)
+    );
+
+Ejemplo:
+
+    create table pedidos (
+        id_pedido int auto_increment,
+        id_cliente int not null,
+        fecha date,
+        constraint pk_pedidos primary key (id_pedido),
+        constraint fk_pedidos_clientes foreign key (id_cliente)
+            references clientes(id_cliente)
+    );
+
+Recuerda: Primero debe existir clientes y su id_cliente debe ser PRIMARY KEY o UNIQUE; los tipos de datos deben ser compatibles.
+
+------------------------------------------------------------------
+87. CONSTRAINT + UNIQUE y CHECK
+------------------------------------------------------------------
+¿Para qué sirve? UNIQUE prohíbe valores duplicados; CHECK valida una condición.
+
+Estructura:
+
+    create table nombre_tabla (
+        id int auto_increment,
+        codigo varchar(20),
+        edad int,
+        constraint pk_tabla primary key (id),
+        constraint uq_codigo unique (codigo),
+        constraint chk_edad check (edad >= 0)
+    );
+
+Ejemplo:
+
+    create table estudiantes (
+        id_estudiante int auto_increment,
+        documento varchar(20) not null,
+        edad int,
+        constraint pk_estudiantes primary key (id_estudiante),
+        constraint uq_est_documento unique (documento),
+        constraint chk_est_edad check (edad >= 0)
+    );
+
+Recuerda: Puedes nombrar las restricciones pk_, fk_, uq_ y chk_ para reconocerlas.
+
+------------------------------------------------------------------
+88. ALTER TABLE + ADD CONSTRAINT FOREIGN KEY
+------------------------------------------------------------------
+¿Para qué sirve? Agrega una llave foránea cuando las tablas ya fueron creadas.
+
+Estructura:
+
+    alter table tabla_hija
+    add constraint fk_nombre foreign key (id_padre)
+    references tabla_padre(id_padre);
+
+Ejemplo:
+
+    alter table pedidos
+    add constraint fk_pedidos_clientes foreign key (id_cliente)
+    references clientes(id_cliente);
+
+Recuerda: Si ya creaste esa FOREIGN KEY no la agregues de nuevo.
+
+------------------------------------------------------------------
+89. SELECT solo
+------------------------------------------------------------------
+¿Para qué sirve? Consulta columnas de una tabla, sin modificar los registros.
+
+Estructura:
+
+    select columna1, columna2
+    from nombre_tabla;
+
+Ejemplo:
+
+    select id_cliente, nombre
+    from clientes;
+
+Recuerda: Para ver todas las columnas, usa SELECT * FROM clientes;
+
+------------------------------------------------------------------
+90. SELECT + WHERE
+------------------------------------------------------------------
+¿Para qué sirve? Filtra registros con una condición.
+
+Estructura:
+
+    select columna1, columna2
+    from nombre_tabla
+    where condicion;
+
+Ejemplo:
+
+    select id_cliente, nombre
+    from clientes
+    where id_cliente = 3;
+
+------------------------------------------------------------------
+91. SELECT + JOIN usando FOREIGN KEY
+------------------------------------------------------------------
+¿Para qué sirve? Consulta información de dos tablas relacionadas por PK y FK.
+
+Estructura:
+
+    select a.columna, b.columna
+    from tabla_hija a
+    inner join tabla_padre b
+        on a.id_padre = b.id_padre;
+
+Ejemplo:
+
+    select p.id_pedido, c.nombre
+    from pedidos p
+    inner join clientes c
+        on p.id_cliente = c.id_cliente;
+
+Recuerda: La FOREIGN KEY se declara en CREATE TABLE o ALTER TABLE; en el SELECT se relacionan las columnas con JOIN ... ON.
+
+------------------------------------------------------------------
+92. SELECT completo: WHERE, GROUP BY, HAVING y ORDER BY
+------------------------------------------------------------------
+¿Para qué sirve? Combina filtros, agrupación y ordenamiento en una consulta.
+
+Estructura:
+
+    select columna_grupo, count(*) as total
+    from nombre_tabla
+    where condicion_fila
+    group by columna_grupo
+    having count(*) > numero
+    order by total desc;
+
+Ejemplo:
+
+    select id_cliente, count(*) as total_pedidos
+    from pedidos
+    where fecha >= '2026-01-01'
+    group by id_cliente
+    having count(*) > 1
+    order by total_pedidos desc;
+
+Recuerda: WHERE filtra filas ANTES de agrupar; HAVING filtra grupos DESPUÉS de agrupar.
+
+
+==================================================================
+ANEXO ADICIONAL: ACLARACIONES ÚTILES PARA EL PARCIAL
+(Contenido complementario añadido; no forma parte del documento original)
+==================================================================
+
+1) DIFERENCIAS ENTRE CATEGORÍAS SQL
+DDL: CREATE, ALTER, DROP y TRUNCATE. Cambian la estructura.
+DML: INSERT, UPDATE, DELETE. Cambian registros.
+DQL: SELECT. Consulta información.
+TCL: START TRANSACTION, COMMIT, ROLLBACK, SAVEPOINT. Controlan transacciones.
+DCL: GRANT y REVOKE. Administran permisos.
+
+2) INT Y VARCHAR EN UN ID
+id_cliente INT AUTO_INCREMENT: número generado automáticamente, práctico para PK internas.
+documento VARCHAR(20): identificador textual que puede contener ceros a la izquierda, letras o símbolos.
+Una PK no tiene que ser siempre INT: puede ser VARCHAR si el diseño lo justifica.
+Una FK debe usar un tipo compatible con la columna que referencia.
+
+3) TIPOS DE DATOS COMUNES
+INT: entero.
+VARCHAR(n): texto de longitud variable, hasta n caracteres.
+CHAR(n): texto de longitud fija.
+DECIMAL(10,2): número decimal exacto de hasta 10 dígitos totales, 2 decimales.
+DATE: fecha.
+DATETIME: fecha y hora.
+BOOLEAN: alias de TINYINT(1) en MySQL.
+TEXT: texto largo.
+
+4) CONSTRAINT: ESTRUCTURA GENERAL
+CONSTRAINT nombre_restriccion PRIMARY KEY (id)
+CONSTRAINT nombre_restriccion FOREIGN KEY (id_padre) REFERENCES padre(id)
+CONSTRAINT nombre_restriccion UNIQUE (codigo)
+CONSTRAINT nombre_restriccion CHECK (cantidad > 0)
+Los nombres de restricciones son etiquetas, no palabras reservadas. En MySQL, la clave primaria se representa internamente con el nombre PRIMARY.
+
+5) FK CON REGLAS DE BORRADO O ACTUALIZACIÓN
+Estructura:
+    CONSTRAINT fk_hija_padre FOREIGN KEY (id_padre)
+        REFERENCES tabla_padre(id_padre)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+CASCADE: propaga borrados o cambios de PK.
+RESTRICT / NO ACTION: impide borrar o modificar si hay dependencias (según motor y contexto).
+SET NULL: pone la FK en NULL; la columna debe permitir NULL.
+
+6) FUNCIONES AGREGADAS Y NULL
+COUNT(*): cuenta filas, incluso cuando alguna columna tenga NULL.
+COUNT(columna): cuenta filas con valor NO NULL en esa columna.
+COUNT(DISTINCT columna): cuenta los valores diferentes, sin NULL.
+SUM, AVG, MIN y MAX generalmente ignoran NULL.
+COALESCE(SUM(monto), 0): devuelve 0 si el resultado de SUM es NULL.
+
+Ejemplo:
+    SELECT id_cliente,
+           COALESCE(SUM(total), 0) AS total_compras,
+           COUNT(*) AS cantidad_pedidos
+    FROM pedidos
+    GROUP BY id_cliente;
+
+7) OJO CON LENGTH EN MYSQL
+LENGTH(texto) cuenta bytes, no necesariamente caracteres.
+CHAR_LENGTH(texto) cuenta caracteres.
+Con tildes o ñ en UTF-8 los dos resultados pueden ser diferentes.
+
+8) DIFERENCIA WHERE Y HAVING
+WHERE filtra registros antes de formar los grupos.
+HAVING filtra grupos después de GROUP BY.
+
+Ejemplo:
+    SELECT id_cliente, COUNT(*) AS total
+    FROM pedidos
+    WHERE fecha >= '2026-01-01'
+    GROUP BY id_cliente
+    HAVING COUNT(*) >= 3
+    ORDER BY total DESC;
+
+9) INSERT ... ON DUPLICATE KEY UPDATE (UPSERT DE MYSQL)
+Solo se activa cuando se viola una PK o una restricción UNIQUE.
+
+Estructura:
+    INSERT INTO tabla(id, columna)
+    VALUES (1, 'Nuevo')
+    ON DUPLICATE KEY UPDATE columna = 'Nuevo';
+
+10) INSERT CON RESULTADO DE SELECT
+Estructura:
+    INSERT INTO tabla_destino(columna1, columna2)
+    SELECT columna1, columna2
+    FROM tabla_origen
+    WHERE condicion;
+
+11) UNION Y UNION ALL
+UNION combina resultados y elimina duplicados.
+UNION ALL combina resultados sin eliminar duplicados.
+
+Estructura:
+    SELECT ciudad FROM clientes
+    UNION
+    SELECT ciudad FROM proveedores;
+
+12) VER LA ESTRUCTURA Y REVISAR TABLAS
+    SHOW TABLES;
+    DESCRIBE clientes;
+    SHOW CREATE TABLE clientes;
+
+13) MODIFICAR Y ELIMINAR COLUMNAS
+    ALTER TABLE clientes ADD telefono VARCHAR(20);
+    ALTER TABLE clientes MODIFY COLUMN telefono VARCHAR(30);
+    ALTER TABLE clientes DROP COLUMN telefono;
+
+14) NORMAS PARA EJECUTAR EJEMPLOS
+Los ejemplos de la guía usan distintas bases y tablas, como clientes, empleados, drones y pedidos. Son plantillas individuales, NO un único archivo ejecutable de principio a fin.
+Primero crea las tablas referenciadas y comprueba que existen las columnas utilizadas en cada consulta.
+No se escribe literalmente "tipo", "condicion", "operaciones" ni "before/after insert/update/delete"; son marcadores que debes sustituir.
+Antes de ejecutar DROP, TRUNCATE, DELETE sin WHERE o UPDATE sin WHERE, revisa qué datos vas a afectar.
+Las transacciones sirven para cambios de datos con tablas transaccionales, como InnoDB; ciertas sentencias DDL provocan COMMIT implícito en MySQL.
+Cuando una subconsulta con NOT IN devuelve NULL, puede producir resultados inesperados; NOT EXISTS suele ser una alternativa más segura.
+
+15) ORDEN HABITUAL DE UNA CONSULTA COMPLETA
+    SELECT columnas, funciones_agregadas
+    FROM tabla_principal
+    JOIN otra_tabla ON tabla_principal.id = otra_tabla.id
+    WHERE condicion_filas
+    GROUP BY columnas_de_agrupacion
+    HAVING condicion_grupos
+    ORDER BY columna ASC
+    LIMIT numero OFFSET salto;
+
+NOTA: Esto es una plantilla: agrega solo las cláusulas necesarias para cada ejercicio.
